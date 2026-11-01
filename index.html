@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Imposter</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c0392b">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#f4f1ea;--fg:#1d1d1f;--card:#fff;--ac:#c0392b;--mut:#777;--ok:#2e8b57;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17181c;--fg:#eee;--card:#25272d;--mut:#999}}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+main{max-width:480px;margin:0 auto;padding:16px}
+h1{margin:8px 0 16px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}
+button{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:var(--ac);color:#fff;cursor:pointer}
+button.s{background:var(--mut)}
+button.big{width:100%;font-size:18px;padding:16px}
+.st button{padding:6px 14px;font-size:20px}
+input[type=text]{width:100%;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--mut);background:var(--bg);color:var(--fg);margin:3px 0;-webkit-user-select:text;user-select:text}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 12px;border-radius:20px;background:var(--bg);border:1px solid var(--mut);font-size:14px}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.pl{display:block;width:100%;margin:6px 0;padding:18px;font-size:20px;touch-action:none}
+.pl.done{background:var(--ok)}
+.ov{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;z-index:9}
+.ov .w{font-size:40px;font-weight:700;margin:12px 0}
+.ov .imp{color:var(--ac)}
+.timer{font-size:56px;text-align:center;font-variant-numeric:tabular-nums;margin:8px 0}
+.who{font-size:44px;font-weight:800;text-align:center;margin:16px 0;word-break:break-word}
+.hold{text-align:center;line-height:1.6;height:48vh;display:flex;align-items:center;justify-content:center;border:3px dashed var(--mut);border-radius:18px;margin:12px 0;font-size:22px;color:var(--mut);touch-action:none}
+.off{opacity:.4;pointer-events:none}
+button.mode.on{background:var(--ok)}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div class="ov hidden" id="ov"></div>
+<script>
+// Word bank: category -> words. Hints are drawn from the same category.
+const B = s => s.split("|").map(g => g.split(","));
+const W = {
+"Tiere":B("Hund,Katze,Hase,Hamster,Meerschweinchen,Wellensittich|Kuh,Schwein,Pferd,Schaf,Ziege,Huhn|Löwe,Tiger,Leopard,Gepard,Panther|Elefant,Nashorn,Giraffe,Zebra,Nilpferd|Delfin,Hai,Wal,Krake,Seehund,Qualle|Adler,Eule,Papagei,Pinguin,Flamingo,Storch|Fuchs,Wolf,Bär,Igel,Eichhörnchen,Reh"),
+"Essen":B("Pizza,Burger,Döner,Currywurst,Pommes,Hotdog|Spaghetti,Lasagne,Tortellini,Gnocchi,Ravioli|Schnitzel,Gulasch,Rouladen,Bratwurst,Frikadelle|Sushi,Ramen,Falafel,Tacos,Paella,Curry|Eis,Schokolade,Käsekuchen,Pfannkuchen,Waffel,Tiramisu|Brezel,Croissant,Brötchen,Toast,Baguette|Apfel,Banane,Erdbeere,Orange,Traube,Ananas"),
+"Orte":B("Strand,Schwimmbad,Campingplatz,Freibad,Hafen,Leuchtturm|Bahnhof,Flughafen,Tankstelle,Busbahnhof,Parkhaus|Kino,Theater,Museum,Zoo,Disco,Bibliothek|Krankenhaus,Apotheke,Arztpraxis,Pflegeheim,Notaufnahme|Supermarkt,Bäckerei,Metzgerei,Kiosk,Baumarkt,Einkaufszentrum|Schloss,Kirche,Rathaus,Friedhof,Burg,Kloster|Wald,Berggipfel,Wiese,Höhle,See,Feld|Gefängnis,Gefängnishof,Pausenhof,Klassenzimmer,Altersheim|Fitnessstudio,Sauna,FKK-Strand,Nacktbadestrand,Schrebergarten,Streichelzoo|Rotlichtviertel,Nachtclub,Plantage,Schlachthof,Wochenmarkt,Schwarzmarkt"),
+"Berufe":B("Arzt,Krankenpfleger,Zahnarzt,Tierarzt,Apotheker|Lehrer,Professor,Erzieher,Trainer,Dozent|Polizist,Feuerwehrmann,Richter,Detektiv,Soldat,Anwalt|Koch,Bäcker,Metzger,Kellner,Konditor|Maler,Elektriker,Tischler,Klempner,Dachdecker,Maurer|Pilot,Busfahrer,Lokführer,Kapitän,Taxifahrer|Fotograf,Schauspieler,Musiker,Journalist,Autor,Regisseur|Zuhälter,Dealer,Einbrecher,Drogenkurier,Voyeur,Mafiapatin|Urologe,Hausarzt,Hausmeister,Bademeister,Friseur,Paketbote,Handwerker"),
+"Gegenstände":B("Hammer,Zange,Schraubenzieher,Säge,Bohrmaschine,Schraubenschlüssel|Schere,Kleber,Lineal,Tacker,Bleistift,Locher|Zahnbürste,Kamm,Rasierer,Seife,Handtuch,Shampoo|Toaster,Wasserkocher,Mixer,Kaffeemaschine,Mikrowelle|Taschenlampe,Kerze,Streichholz,Feuerzeug,Laterne|Regenschirm,Rucksack,Sonnenbrille,Mütze,Schal,Handschuh|Gitarre,Klavier,Geige,Trompete,Schlagzeug,Flöte|Sparschwein,Zahnspange,Foltergerät,Führerschein,Waffenschein,Schwangerschaftstest"),
+"Sport & Hobby":B("Fußball,Handball,Basketball,Volleyball,Rugby|Tennis,Tischtennis,Badminton,Squash|Schwimmen,Surfen,Segeln,Tauchen,Rudern|Skifahren,Snowboard,Eislaufen,Rodeln|Boxen,Karate,Judo,Ringen,Fechten|Schach,Darts,Billard,Bowling,Poker|Stricken,Malen,Fotografieren,Angeln,Wandern"),
+"Natur":B("Vulkan,Gletscher,Geysir,Canyon,Höhle|Regenbogen,Gewitter,Nebel,Tornado,Hagel,Schneesturm|Wasserfall,Quelle,Fluss,Bach,See,Teich|Wüste,Dschungel,Steppe,Savanne,Tundra|Insel,Lagune,Korallenriff,Atoll,Halbinsel|Sonnenuntergang,Sternschnuppe,Mondfinsternis,Polarlicht,Sonnenaufgang"),
+"Filme & Fantasie":B("Drache,Einhorn,Phönix,Greif,Riese,Troll|Zauberer,Hexe,Fee,Elf,Zwerg|Vampir,Werwolf,Zombie,Geist,Mumie|Roboter,Außerirdischer,Raumschiff,Zeitmaschine,Laserschwert|Pirat,Ritter,Ninja,Cowboy,Samurai,Gladiator|Schatzkarte,Zauberstab,Kristallkugel,Zaubertrank,Flaschenpost|Inquisition,Guillotine,Henkersmahlzeit,Sklavenschiff,Geheimbund,Sektentreffen|Vampirnacht,Mafiatreffen,Leichenbeseitigung,Fluchtfahrt,Geisterfahrt,Hexenjagd|Bikini Bottom,Krosse Krabbe,Chum Bucket,Ananashaus,Quallenfelder,Rock Bottom"),
+"Länder":B("Deutschland,Österreich,Schweiz,Niederlande,Belgien,Luxemburg|Frankreich,Spanien,Italien,Portugal,Griechenland,Türkei|Schweden,Norwegen,Dänemark,Finnland,Island|USA,Kanada,Mexiko,Kuba,Brasilien,Argentinien|China,Japan,Indien,Thailand,Südkorea,Vietnam|Ägypten,Marokko,Kenia,Südafrika,Nigeria|Australien,Neuseeland,Russland,Polen,Ukraine"),
+"Städte":B("Berlin,Hamburg,München,Köln,Frankfurt,Dresden|Paris,London,Rom,Madrid,Wien,Amsterdam|New York,Los Angeles,Chicago,Las Vegas,Miami|Tokio,Peking,Dubai,Singapur,Bangkok,Mumbai|Venedig,Florenz,Barcelona,Lissabon,Prag,Athen|Sydney,Rio,Kairo,Kapstadt,Moskau,Istanbul"),
+"Marken":B("Nike,Adidas,Puma,Reebok,Under Armour|Apple,Samsung,Sony,Microsoft,Google,Huawei|McDonalds,Burger King,Subway,KFC,Starbucks|Coca-Cola,Pepsi,Fanta,Sprite,Red Bull,Monster|BMW,Mercedes,Audi,Volkswagen,Porsche,Tesla|IKEA,Lidl,Aldi,Rewe,Edeka,Amazon|Netflix,Spotify,YouTube,Instagram,TikTok,WhatsApp"),
+"Filme":B("Titanic,Avatar,Matrix,Inception,Gladiator,Interstellar|Harry Potter,Herr der Ringe,Star Wars,Hobbit,Narnia|Shrek,Findet Nemo,König der Löwen,Toy Story,Ice Age,Aladdin|Terminator,Rambo,Rocky,Die Hard,Mad Max,Fast and Furious|Der Pate,Pulp Fiction,Joker,Fight Club,Forrest Gump|Jurassic Park,Alien,Godzilla,King Kong,Der weiße Hai"),
+"Serien":B("Breaking Bad,Dark,Narcos,Ozark,Peaky Blinders,Sherlock|Friends,How I Met Your Mother,The Big Bang Theory,The Office,Die Simpsons,Family Guy|Game of Thrones,The Witcher,Vikings,Wednesday,Merlin|Stranger Things,Lost,Black Mirror,Westworld,The Walking Dead|Tatort,GZSZ,Lindenstraße,Alarm für Cobra 11,Bares für Rares|SpongeBob,Pokémon,Dragon Ball,Naruto,One Piece|Thaddäus,Patrick,Mr. Krabs,Sandy,Plankton,Gary"),
+"Wissenschaft":B("Atom,Molekül,Element,Proton,Elektron,Neutron|Reagenzglas,Labor,Mikroskop,Bunsenbrenner,Pipette,Kolben|Nuklearzerfall,Radioaktivität,Kernspaltung,Kernfusion,Halbwertszeit|Zelle,DNA,Gen,Evolution,Bakterie,Virus|Schwerkraft,Magnet,Strom,Spannung,Licht,Schall|Säure,Base,Salz,Katalysator,Reaktion,Lösung|Universum,Galaxie,Milchstraße,Urknall,Dunkle Materie,Schwarzes Loch|Sonne,Mond,Mars,Venus,Jupiter,Saturn|Komet,Asteroid,Meteorit,Sternschnuppe,Supernova,Nebel|Rakete,Satellit,Raumstation,Teleskop,Astronaut,Mondlandung|Planet,Stern,Sternbild,Umlaufbahn,Atmosphäre,Zwergplanet"),
+"Badezimmer & Pflege":B("Lotion,Creme,Parfüm,Deo,Sonnencreme,Lippenbalsam|Shampoo,Spülung,Duschgel,Seife,Badeschaum|Zahnpasta,Mundwasser,Zahnseide,Zahnbürste,Kaugummi|Föhn,Lockenstab,Glätteisen,Haarbürste,Haargummi|Badewanne,Dusche,Waschbecken,Toilette,Spiegel,Badematte|Rasierer,Pinzette,Nagelschere,Wattestäbchen,Nagellack,Make-up"),
+"Wohnen":B("Sofa,Sessel,Couch,Hocker,Bank,Stuhl|Tisch,Schrank,Regal,Kommode,Schreibtisch,Bett|Lampe,Vorhang,Teppich,Kissen,Decke,Bilderrahmen|Küche,Wohnzimmer,Schlafzimmer,Keller,Dachboden,Balkon|Kühlschrank,Herd,Spülmaschine,Waschmaschine,Trockner,Backofen|Tür,Fenster,Treppe,Heizung,Kamin,Steckdose"),
+"Alltag":B("Wecker,Frühstück,Zähneputzen,Pendeln,Mittagspause,Feierabend|Einkaufen,Wäsche waschen,Abwaschen,Putzen,Staubsaugen,Kochen|Handy,Laptop,Fernseher,Kopfhörer,Ladekabel,Fernbedienung|Geburtstag,Hochzeit,Weihnachten,Silvester,Ostern,Urlaub|Regen,Stau,Verspätung,Warteschlange,Wartezimmer,Papierkram|Portemonnaie,Schlüsselbund,Ausweis,Kreditkarte,Bargeld,Münze|Schulabschluss,Klassenfahrt,Elternabend,Kindergeburtstag,Beerdigung,Familientreffen,Kegelabend|Kaffeekränzchen,Stammtisch,Gartenparty,Nachbarschaftsfest,Kneipenabend,Kaffeefahrt|Bewerbungsgespräch,Vorstellungsgespräch,Mitarbeitergespräch,Probezeit,Blutspende,Operation|Tanzkurs,Konzert,Ausflug,Nachtwanderung,Geschäftsreise,Kreuzfahrt,Umzug|Selfie,Urlaubsfoto,Bewerbungsfoto,Fotoshooting,Probefahrt|Nachbarn,Chef,Schwiegermutter,Oma,Chorprobe|Sommerferien,Abendessen,Hundeschule,Sportverein,Pfadfinder|Nachtschicht,Müllabfuhr,Wellnesswochenende,Kur|Duschen,Gassi gehen,Mülltrennung,Pfand wegbringen,Wocheneinkauf,Kassenschlange|Parkplatzsuche,Bahnverspätung,Mittagsschlaf,Serienmarathon,Feierabendbier,Spaziergang|Bügeln,Fensterputzen,Rasenmähen,Betten beziehen,Müll rausbringen,Glühbirne wechseln|Sonnenbrand,Erkältung,Muskelkater,Schlafmangel,Montagmorgen,Wochenende|Sprachnachricht,Gruppenchat,Videoanruf,Smalltalk,Warteschleife,Spam-Mail|Miete,Steuererklärung,Mahnung,Rabatt,Trinkgeld,Kontoauszug|Regenjacke,Einkaufstüte,Schlüsselanhänger,Powerbank,Kleingeld,Taschentuch|Geburtstagskuchen,Wunderkerze,Umzugskarton,Zettelwirtschaft,Waschmaschinenpiepen,Wecker klingelt,Selbsthilfegruppe|Fahrschule,Selbsthilfegruppe,Volkshochschule,Nachhilfe,Theorieprüfung,Prüfungsangst"),
+"Fahrzeuge":B("Auto,Motorrad,Fahrrad,Roller,Quad|Zug,Straßenbahn,Bus,U-Bahn,Seilbahn|Flugzeug,Hubschrauber,Segelflieger,Heißluftballon,Drohne|Schiff,Boot,Fähre,Kajak,Segelboot|Traktor,Bagger,Kran,Feuerwehrauto,Krankenwagen,Müllwagen"),
+"Memes & Internet":B("Rickroll,Doge,Nyan Cat,Planking,Ice Bucket Challenge,Harlem Shake|Reddit,Twitch,Discord,Twitter,Snapchat,Pinterest|Influencer,Hashtag,Livestream,Emoji,Shitstorm,Clickbait|Minecraft,Fortnite,Among Us,Tetris,Pac-Man,Super Mario|Google,Wikipedia,Online-Shopping,Podcast,Newsletter,Tutorial|Frauentausch,Bauer sucht Frau,Adam sucht Eva,Dschungelcamp,Love Island,Der Bachelor|Goodbye Deutschland,Berlin Tag und Nacht,Hartz und herzlich,Promi Big Brother,Temptation Island,Naked Attraction|Gigachad,Trollface,Pepe der Frosch,Wojak,Stonks,Karen|Surprised Pikachu,Distracted Boyfriend,This is fine,Crying Jordan,Harambe,Grumpy Cat|Ich muss raus,Noch Obst im Haus,Gangnam Style,Charlie bit my finger,Numa Numa,Leeroy Jenkins|OK Boomer,Dab,Floss Dance,Mannequin Challenge,Keyboard Cat,Chuck Norris Fakten"),
+"Krimi & Gesetz":B("Gerichtsverhandlung,Verhör,Razzia,Bankraub,Entführung,Fahndungsfoto|Bewährung,Freigang,Gefangenentransport,Ausbruch,Hausarrest,Entzug|Tatortfoto,Beweisfoto,Folter,Gang,Drogentest,Demonstration|Flucht,Flucht ins Ausland,Grenzübertritt,Nachsitzen"),
+"Lustiges":B("Clown,Konfetti,Luftballon,Pupskissen,Seifenblase,Rutsche|Torte im Gesicht,Wasserbombe,Kissenschlacht,Streich,Verkleidung,Aprilscherz|Perücke,Schnurrbart,Einhornkostüm,Pappnase,Faschingshut,Zylinder|Stolpern,Schluckauf,Niesen,Gähnen,Kitzeln,Lachanfall|Schnabeltier,Erdmännchen,Alpaka,Capybara,Nacktmull,Lama"),
+"18+ Party":B("Bier,Wein,Sekt,Whiskey,Tequila,Wodka|Kater,Vorglühen,Shots,Bierpong,Karaoke,Tanzfläche|Flirt,Date,Tinder,Kuss,Blind Date,Liebesbrief|Ex,Eifersucht,Fernbeziehung,Heiratsantrag,Trennung,Schmetterlinge im Bauch|Club,Bar,Türsteher,Cocktail,Kneipe,Shisha|Wahrheit oder Pflicht,Flaschendrehen,Trinkspiel,Beichte,Mutprobe,Flunkyball|Kuscheln,Massage,Kerzenlicht,Candle Light Dinner,Schaumbad,Valentinstag|Vibrator,Dildo,Penisring,Taschenmuschi,Handschellen,Gleitgel|Reizwäsche,Strapse,Korsage,Tanga,Netzstrumpfhose,Latex|Blowjob,Quickie,Dirty Talk,Rollenspiel,Fesselspiele,Vorspiel|One-Night-Stand,Knutschfleck,Zungenkuss,Fummeln,Sexting,Affäre|OnlyFans,Pornhub,Erotikfilm,Nacktfoto,Pin-up,Playboy|Sexshop,Bordell,Darkroom,Swingerclub,Stripclub,Sauna-Club|Pole Dance,Dominastudio,Swingerparty,Tinder-Date,Ringkampf,Junggesellenabschied")
+};
+// Misunderstanding pairs: civilians get one word, imposters the other (random direction)
+const X = "Schulabschluss|Gefängnis;Bewerbungsgespräch|Blind Date;Klassenfahrt|Junggesellenabschied;Zahnarzt|Urologe;Sauna|FKK-Strand;Fitnessstudio|Stripclub;Kaffeekränzchen|Swingerclub;Schwimmbad|Nacktbadestrand;Elternabend|Selbsthilfegruppe;Urlaub|Flucht ins Ausland;Probezeit|Bewährung;Operation|Fotoshooting;Führerschein|Waffenschein;Tanzkurs|Pole Dance;Konzert|Demonstration;Wochenmarkt|Schwarzmarkt;Nachbarn|Affäre;Chef|Ex;Bewerbungsfoto|Fahndungsfoto;Pausenhof|Gefängnishof;Klassenzimmer|Zelle;Ausflug|Ausbruch;Hochzeit|Beerdigung;Kindergeburtstag|Kegelabend;Kirche|Rotlichtviertel;Wellnesswochenende|Kur;Massage|Folter;Nachsitzen|Hausarrest;Kuscheln|Ringkampf;Hausarzt|Dealer;Abendessen|Henkersmahlzeit;Sommerferien|Freigang;Lehrer|Zuhälter;Paketbote|Drogenkurier;Oma|Mafiapatin;Kreuzfahrt|Sklavenschiff;Hausmeister|Türsteher;Schwiegermutter|Inquisition;Zahnspange|Foltergerät;Tierarzt|Metzger;Schlafzimmer|Tatort;Chorprobe|Sektentreffen;Fahrschule|Fluchtfahrt;Blutspende|Vampirnacht;Sportverein|Gang;Schrebergarten|Plantage;Nachtschicht|Nachtclub;Umzug|Flucht;Friseur|Guillotine;Gartenparty|Swingerparty;Mitarbeitergespräch|Verhör;Probefahrt|Gefangenentransport;Kneipenabend|Entzug;Kaffeefahrt|Entführung;Handwerker|Einbrecher;Bademeister|Voyeur;Vorstellungsgespräch|Tinder-Date;Beichte|Verhör;Streichelzoo|Schlachthof;Schwangerschaftstest|Drogentest;Nachtwanderung|Grenzübertritt;Pfadfinder|Geheimbund;Müllabfuhr|Leichenbeseitigung;Stammtisch|Mafiatreffen;Altersheim|Freigang;Hundeschule|Dominastudio;Urlaubsfoto|Beweisfoto;Sparschwein|Bankraub;Geschäftsreise|Affäre;Nachbarschaftsfest|Razzia;Selfie|Tatortfoto;Familientreffen|Gerichtsverhandlung".split(";").map(s => s.split("|"));
+const cats = Object.keys(W);
+let AC = null;
+function unlock() { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); AC.resume(); } catch (e) {} }
+function tone(seq) {
+  if (!S.sound) return;
+  try {
+    unlock(); const t0 = AC.currentTime;
+    seq.forEach(([f, d, w]) => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.frequency.value = f; o.connect(g); g.connect(AC.destination);
+      g.gain.setValueAtTime(0.2, t0 + w); g.gain.exponentialRampToValueAtTime(0.001, t0 + w + d);
+      o.start(t0 + w); o.stop(t0 + w + d);
+    });
+  } catch (e) {}
+}
+const vib = p => { try { navigator.vibrate(p); } catch (e) {} };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+let S = { n: 4, names: [], imp: 1, min: 5, hints: false, own: false, blind: false, last: false, score: false, scores: [], out: [], near: 0, twist: false, rnd: false, used: [], usedG: [], sound: true, cats: cats.slice() };
+try { const x = JSON.parse(localStorage.getItem("imposter") || "null"); if (x) S = Object.assign(S, x); } catch (e) {}
+if (S.ver !== 5) { S.cats = cats.filter(c => c !== "18+ Party"); S.ver = 5; }
+S.cats = S.cats.filter(c => cats.includes(c));
+let G = null, tick = null;
+const save = () => { try { localStorage.setItem("imposter", JSON.stringify(S)); } catch (e) {} };
+const nm = i => (S.names[i] || "").trim() || "Spieler " + (i + 1);
+
+function setup() {
+  clearInterval(tick);
+  S.out = S.out.filter(i => i < S.n); if (S.imp > act().length - 1) S.imp = act().length - 1;
+  const tw = S.twist;
+  const row = (id, label, on, off) => `<label class="row ${off ? "off" : ""}"><span>${label}</span><input type="checkbox" id="${id}" ${on ? "checked" : ""}></label>`;
+  let h = '<h1>🕵️ Imposter</h1><div class="card"><b>Spieler</b>';
+  h += stepper("n", S.n, "Anzahl");
+  for (let i = 0; i < S.n; i++) h += `<input type="text" data-i="${i}" placeholder="Spieler ${i + 1}" value="${esc(S.names[i] || "")}">`;
+  h += '</div>' + outCard();
+  h += `<div class="card"><b>Modus</b><div class="row" style="gap:8px;margin-top:8px"><button class="s mode ${tw ? "" : "on"}" data-m="0" style="flex:1">Normal</button><button class="s mode ${tw ? "on" : ""}" data-m="1" style="flex:1">Missverständnis</button></div></div>`;
+  h += '<div class="card"><b>Regeln</b>' + stepper("imp", S.imp, "Imposter") + stepper("min", S.min, "Zeit (Minuten, 0 = aus)");
+  h += row("rnd", "Zufällige Anzahl Imposter", S.rnd);
+  h += row("last", "Letzte Chance: gefundener Imposter darf das Wort raten", S.last);
+  h += row("score", "Punkte über mehrere Runden mitnehmen", S.score);
+  if (S.score) h += `<button class="s" id="rst">Punkte zurücksetzen</button>`;
+  h += '</div>';
+  h += `<div class="card ${tw ? "off" : ""}"><b>Hinweise</b>`;
+  h += row("blind", "Imposter wissen nicht, dass sie Imposter sind", S.blind);
+  h += row("hints", "Imposter bekommen Hinweis" + (S.blind ? " (aus: Imposter wissen es nicht)" : ""), S.hints, S.blind);
+  h += row("own", "Jeder Imposter eigener Hinweis" + (S.blind || !S.hints ? " (erst Hinweis an)" : ""), S.own, S.blind || !S.hints);
+  h += `<div class="${S.blind || S.hints ? "" : "off"}"><div class="row" style="margin-top:10px"><span>Nähe der Hinweise${S.blind || S.hints ? "" : " (erst Hinweis an)"}</span></div><div class="chips">` + ["Sehr nah", "Mittel", "Weit"].map((l, k) => `<span class="chip ${S.near === k ? "on" : ""}" data-nr="${k}">${l}</span>`).join("") + '</div></div></div>';
+  h += `<div class="card ${tw ? "off" : ""}"><b>Kategorien</b> <span class="chip" id="allc" style="margin-left:8px">Alle an/aus</span><div class="chips" style="margin-top:8px">` + cats.map(c => `<span class="chip ${S.cats.includes(c) ? "on" : ""}" data-c="${c}">${c}</span>`).join("") + '</div></div>';
+  h += '<div class="card"><b>Einstellungen</b>' + row("sound", "Töne", S.sound) + '</div>';
+  h += '<button class="big" id="go">Spiel starten</button>';
+  h += '<button class="big s" id="wl" style="margin-top:10px">Wörter ansehen</button>';
+  $("app").innerHTML = h;
+  $("app").querySelectorAll("[data-s]").forEach(b => b.onclick = () => {
+    const k = b.dataset.s, d = +b.dataset.d, lim = { n: [3, 20], imp: [1, Math.max(1, act().length - 1)], min: [0, 60] }[k];
+    S[k] = Math.min(lim[1], Math.max(lim[0], S[k] + d)); save(); setup();
+  });
+  $("app").querySelectorAll("input[data-i]").forEach(i => i.oninput = () => { S.names[+i.dataset.i] = i.value; save(); });
+  $("app").querySelectorAll("[data-m]").forEach(b => b.onclick = () => { S.twist = b.dataset.m === "1"; save(); setup(); });
+  const bind = (id, k, again) => { $(id).onchange = e => { S[k] = e.target.checked; save(); if (again) setup(); }; };
+  bind("hints", "hints", true); bind("own", "own"); bind("blind", "blind", true); bind("last", "last");
+  bind("rnd", "rnd"); bind("score", "score", true);
+  $("sound").onchange = e => { S.sound = e.target.checked; save(); if (S.sound) tone([[660, .15, 0]]); };
+  if ($("rst")) $("rst").onclick = () => { S.scores = []; save(); alert("Punkte zurückgesetzt."); };
+  $("app").querySelectorAll("[data-c]").forEach(c => c.onclick = () => {
+    const k = c.dataset.c; S.cats = S.cats.includes(k) ? S.cats.filter(x => x !== k) : S.cats.concat(k);
+    save(); c.classList.toggle("on");
+  });
+  bindOut(setup);
+  $("allc").onclick = () => { S.cats = S.cats.length === cats.length ? [] : cats.slice(); save(); setup(); };
+  $("app").querySelectorAll("[data-nr]").forEach(c => c.onclick = () => { S.near = +c.dataset.nr; save(); setup(); });
+  $("wl").onclick = wordList;
+  $("go").onclick = () => { if (!tw && !S.cats.length) { alert("Bitte mindestens eine Kategorie wählen."); return; } start(); };
+}
+function wordList() {
+  const total = cats.reduce((a, c) => a + W[c].flat().length, 0);
+  const back = '<button class="s bk" style="width:100%;margin-bottom:12px">Zurück</button>';
+  let h = '<h1>Wörter</h1><p>' + cats.length + ' Kategorien, ' + total + ' Wörter, ' + X.length + ' Missverständnis-Paare</p>' + back;
+  cats.forEach(c => {
+    h += `<div class="card"><b>${esc(c)}</b> (${W[c].flat().length})` + W[c].map(g => `<div style="margin-top:8px;font-size:14px">${g.map(esc).join(", ")}</div>`).join("") + '</div>';
+  });
+  h += `<div class="card"><b>Missverständnis-Paare</b> (${X.length})` + X.map(p => `<div style="margin-top:6px;font-size:14px">${esc(p[0])} / ${esc(p[1])}</div>`).join("") + '</div>' + back;
+  $("app").innerHTML = h;
+  $("app").querySelectorAll(".bk").forEach(b => b.onclick = setup);
+  window.scrollTo(0, 0);
+}
+function stepper(k, v, label) {
+  return `<div class="row st"><span>${label}</span><span><button class="s" data-s="${k}" data-d="-1">−</button> <b style="display:inline-block;min-width:28px;text-align:center">${v}</b> <button class="s" data-s="${k}" data-d="1">+</button></span></div>`;
+}
+
+function start() {
+  unlock();
+  const seen = x => S.used.includes(x);
+  const byFresh = a => shuffle(a).sort((x, y) => seen(x) - seen(y));
+  const px = X.filter(p => !p.some(seen));
+  const tw = S.twist ? (p => Math.random() < 0.5 ? p : [p[1], p[0]])(shuffle(px.length ? px : X)[0]) : null;
+  const cat = tw ? "Missverständnis" : shuffle(S.cats)[0];
+  const gf = tw ? [] : W[cat].filter(g => !S.usedG.includes(g[0]));
+  const grp = tw ? [] : shuffle(gf.length ? gf : W[cat])[0], word = tw ? tw[0] : byFresh(grp)[0];
+  let src = grp;
+  if (tw) src = [];
+  else if (S.near === 1) src = W[cat].filter(g => g !== grp).flat();
+  else if (S.near === 2) { const o = S.cats.filter(c => c !== cat); src = (o.length ? o : [cat]).flatMap(c => W[c].flat()); }
+  const pool = byFresh(src.filter(x => x !== word));
+  const maxI = Math.max(1, Math.floor(act().length / 2));
+  const cnt = S.rnd ? 1 + Math.floor(Math.random() * maxI) : Math.min(S.imp, act().length - 1);
+  const ids = shuffle(act()).slice(0, cnt);
+  const hint = {};
+  ids.forEach((id, k) => { if (S.hints) hint[id] = S.own ? pool[k % pool.length] : pool[0]; });
+  if (S.blind || tw) ids.forEach(id => delete hint[id]);
+  G = { cat, word, ids, hint, fake: tw ? tw[1] : pool[0], cur: 0, blind: S.blind || !!tw, rnd: S.rnd };
+  S.used = [...S.used, word, ...(G.blind ? [G.fake] : []), ...Object.values(hint)].slice(-150);
+  if (grp.length) S.usedG = [...S.usedG, grp[0]].slice(-4);
+  save();
+  reveal();
+}
+const act = () => [...Array(S.n).keys()].filter(i => !S.out.includes(i));
+function outCard() {
+  return '<div class="card"><b>Wer spielt mit? (Tippen = raus bzw. wieder rein)</b><div class="chips" style="margin-top:8px">' + [...Array(S.n).keys()].map(i => `<span class="chip ${S.out.includes(i) ? "" : "on"}" data-o="${i}">${esc(nm(i))}</span>`).join("") + '</div></div>';
+}
+function bindOut(redo) {
+  $("app").querySelectorAll("[data-o]").forEach(c => c.onclick = () => {
+    const i = +c.dataset.o;
+    if (S.out.includes(i)) S.out = S.out.filter(x => x !== i);
+    else if (S.n - S.out.length > 3) S.out.push(i);
+    else { alert("Mindestens 3 Spieler müssen dabei bleiben."); return; }
+    save();
+    if (redo) redo(); else c.classList.toggle("on");
+  });
+}
+function intro() {
+  const who = nm(shuffle(act())[0]);
+  let c = 3;
+  $("app").innerHTML = `<div style="min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center"><div class="who">${esc(who)}</div><div style="font-size:24px">beginnt. Bereite dich vor.</div><div id="cd" style="font-size:160px;font-weight:800;line-height:1.2;margin-top:24px">3</div></div>`;
+  tone([[600, .15, 0]]);
+  clearInterval(tick);
+  tick = setInterval(() => {
+    c--;
+    if (c > 0) { $("cd").textContent = c; tone([[600, .15, 0]]); }
+    else { clearInterval(tick); tone([[900, .3, 0]]); play(); }
+  }, 1000);
+}
+function reveal() {
+  const list = act();
+  if (G.cur >= list.length) return intro();
+  const i = list[G.cur], last = G.cur === list.length - 1;
+  $("app").innerHTML = `<div class="who">${esc(nm(i))}</div><div class="hold" id="hold">Halten zum Ansehen<br>Loslassen zum Verdecken</div><button class="big" id="nx">${last ? "Runde starten" : "Weiter, nächster Spieler"}</button>`;
+  const hd = $("hold");
+  hd.addEventListener("pointerdown", e => { e.preventDefault(); try { hd.setPointerCapture(e.pointerId); } catch (x) {} showCard(i); });
+  ["pointerup", "pointercancel"].forEach(ev => hd.addEventListener(ev, hideCard));
+  hd.addEventListener("contextmenu", e => e.preventDefault());
+  $("nx").onclick = () => { G.cur++; reveal(); };
+}
+function showCard(i) {
+  const imp = G.ids.includes(i);
+  $("ov").innerHTML = `<div>${esc(nm(i))}</div>` + (imp && !G.blind
+    ? `<div class="w imp">IMPOSTER</div>` + (S.hints ? `<div class="w">${esc(G.hint[i])}</div>` : "")
+    : `<div class="w">${esc(imp ? G.fake : G.word)}</div>`);
+  $("ov").classList.remove("hidden"); vib(30);
+  $("ov").querySelectorAll(".w").forEach(el => {
+    const len = Math.max(...el.textContent.split(" ").map(x => x.length), 1);
+    el.style.fontSize = Math.max(20, Math.min(40, Math.floor(window.innerWidth * 0.85 / (len * 0.62)))) + "px";
+  });
+}
+function hideCard() { $("ov").classList.add("hidden"); $("ov").innerHTML = ""; }
+const TASKS = ["Nennt reihum ein einzelnes Wort, das euer Wort beschreibt.", "Beschreibt euer Wort reihum in einem Satz.", "Fragt einen Mitspieler, wie er das Wort beschreiben würde.", "Fragt einen Mitspieler, wie er das Wort findet.", "Sagt reihum, was ihr mit dem Wort verbindet.", "Nennt reihum, wo ihr dem Wort schon begegnet seid."];
+function play() {
+  let left = S.min * 60;
+  const draw = () => { const m = String(Math.floor(left / 60)).padStart(2, "0"), s = String(left % 60).padStart(2, "0"); const t = $("t"); if (t) t.textContent = m + ":" + s; };
+  $("app").innerHTML = `<h1>Diskussion</h1>` + (S.min ? `<div class="timer" id="t"></div>` : "") + `<div class="card" style="font-size:15px;line-height:1.35">${TASKS.map(x => `<div style="margin:9px 0">• ${esc(x)}</div>`).join("")}</div><button class="big" id="res" style="position:sticky;bottom:12px">Zur Abstimmung</button>`;
+  $("res").onclick = vote;
+  if (S.min) { draw(); clearInterval(tick); tick = setInterval(() => { left--; draw(); if (left <= 0) { clearInterval(tick); vib([400, 200, 400]); tone([[880, .3, 0], [880, .3, .4], [880, .3, .8], [1175, .6, 1.2]]); $("t").textContent = "Zeit um!"; } }, 1000); }
+}
+function lastChance(picks) {
+  $("app").innerHTML = `<h1>Letzte Chance</h1><p>Der Imposter wurde gefunden. Er darf jetzt laut das geheime Wort raten. War das Wort richtig?</p><button class="big" id="y">Ja, richtig geraten</button><button class="big s" id="n" style="margin-top:10px">Nein, falsch</button>`;
+  $("y").onclick = () => result(picks, true);
+  $("n").onclick = () => result(picks, false);
+}
+function vote() {
+  clearInterval(tick);
+  const need = G.rnd ? act().length - 1 : G.ids.length, sel = new Set();
+  const draw = () => {
+    let h = `<h1>Abstimmung</h1><p>${G.rnd ? "Wählt alle Verdächtigen aus." : "Wählt " + need + " Spieler aus (" + sel.size + "/" + need + ")."}</p>`;
+    for (const i of act()) h += `<button class="pl ${sel.has(i) ? "" : "s"}" data-v="${i}">${esc(nm(i))}${sel.has(i) ? " ✓" : ""}</button>`;
+    h += `<button class="big" id="ok" style="margin-top:12px${(G.rnd ? sel.size > 0 : sel.size === need) ? "" : ";opacity:.4"}">Abstimmen</button>`;
+    $("app").innerHTML = h;
+    $("app").querySelectorAll("[data-v]").forEach(b => b.onclick = () => {
+      const i = +b.dataset.v;
+      if (sel.has(i)) sel.delete(i); else if (sel.size < need) sel.add(i);
+      draw();
+    });
+    $("ok").onclick = () => { if (G.rnd ? sel.size > 0 : sel.size === need) result([...sel]); };
+  };
+  draw();
+}
+function result(picks, guessed) {
+  const found = G.ids.filter(i => picks.includes(i)).length;
+  const caught = found === G.ids.length && picks.length === G.ids.length;
+  if (caught && S.last && guessed === undefined) return lastChance(picks);
+  const civWin = caught && guessed !== true;
+  tone(civWin ? [[523, .15, 0], [659, .15, .15], [784, .15, .3], [1047, .4, .45]] : [[392, .25, 0], [330, .25, .25], [262, .5, .5]]);
+  if (S.score) {
+    for (const i of act()) { const imp = G.ids.includes(i); S.scores[i] = (S.scores[i] || 0) + (civWin ? (imp ? 0 : 1) : (imp ? 2 : 0)); }
+    save();
+  }
+  const board = S.score ? '<div class="card"><b>Punktestand</b>' + [...Array(S.n).keys()].map(i => `<div class="row"><span>${esc(nm(i))}</span><b>${S.scores[i] || 0}</b></div>`).join("") + '</div>' : "";
+  const verdict = guessed === true
+    ? `<div class="card"><b style="color:var(--ac)">Imposter gefunden, aber das Wort richtig geraten. Die Imposter gewinnen.</b></div>`
+    : found === G.ids.length
+    ? `<div class="card"><b style="color:var(--ok)">Richtig! Alle Imposter gefunden, die Zivilisten gewinnen.</b></div>`
+    : found > 0
+      ? `<div class="card"><b>Teilweise richtig: ${found} von ${G.ids.length} Imposter gefunden. Die Imposter gewinnen.</b></div>`
+      : `<div class="card"><b style="color:var(--ac)">Falsch! Die Imposter gewinnen.</b></div>`;
+  clearInterval(tick);
+  const h = G.ids.map(i => `<div class="row"><b>${esc(nm(i))}</b><span>${S.hints && G.hint[i] !== undefined ? "Hinweis: " + esc(G.hint[i]) : ""}</span></div>`).join("");
+  $("app").innerHTML = `<h1>Auflösung</h1>${verdict}<div class="card"><div>Kategorie: ${esc(G.cat)}</div>${G.blind ? "<div>Wort der Imposter: " + esc(G.fake) + "</div>" : ""}<div class="w" style="font-size:32px;font-weight:700;margin:8px 0">${esc(G.word)}</div></div><div class="card"><b>${G.ids.length > 1 ? "Imposter" : "Imposter war"}</b>${h}</div>${board}${outCard()}<button class="big" id="again">Neue Runde</button><button class="big s" id="back" style="margin-top:10px">Einstellungen</button>`;
+  bindOut(); $("again").onclick = start; $("back").onclick = setup;
+}
+setup();
+</script>
+<script>
+if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("sw.js"); } catch (e) {} }
+</script>
+</body>
+</html>
