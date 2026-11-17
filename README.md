@@ -1,4 +1,5 @@
 # Imposter
+Aufrufen: https://derrolo.github.io/Imposter/
 
 Ein werbefreies Imposter-Partyspiel für Android. Ein Handy wird herumgereicht, alle sehen heimlich ihr Wort, nur die Imposter kennen es nicht. Danach wird beschrieben, diskutiert und abgestimmt.
 
